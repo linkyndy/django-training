@@ -1,10 +1,15 @@
 from django.http import HttpResponse
+from django.shortcuts import render
+
+from models import Test
 
 
 def index(request):
 	"""Base view, showing all tests"""
 
-	return HttpResponse('Tests index')
+	context = {'tests': Test.objects.all()}
+
+	return render(request, 'tests/index.html', context)
 
 
 def view(request, test_id):
