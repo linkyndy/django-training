@@ -1,0 +1,20 @@
+<h1>Tests</h1>
+
+{% if active_test != None %}
+	<p>
+		You have an active test. 
+		<a href="{% url 'tests:view' active_test %}">Continue</a>
+		or
+		<a href="{% url 'tests:give_up' %}">give up</a>
+		test.
+	</p>
+{% else %}
+	<ul>
+	{% for test in tests %}
+		<li>
+			{{ test.name }}
+			<a href="{% url 'tests:view' test.id %}">Start</a>
+		</li>
+	{% endfor %}
+	</ul>
+{% endif %}
