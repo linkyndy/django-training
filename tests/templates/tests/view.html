@@ -1,0 +1,16 @@
+<h1>{{ test.name }}</h1>
+
+<ul>
+{% for question in questions %}
+	<li>
+		{{ question.name }}
+		<ul>
+		{% for answer in question.answers.all %}
+			<li>{{ answer.name }}</li>
+		{% endfor %}
+		</ul>
+	</li>
+{% endfor %}
+</ul>
+
+<p>You are currently on page {{ page_number|add:1 }} out of {{ page_count }}</p>
