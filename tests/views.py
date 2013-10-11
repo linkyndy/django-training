@@ -29,20 +29,46 @@ def view(request, test_id):
 	# If test_id is not started, start it
 	if 'test_id' not in request.session:
 		request.session['test_id'] = test_id
+		request.session['page_number'] = 0
+		request.session['score'] = 0
 
-	# Get active test's current page number; if test
-	# has been activated now, get default page number
-	page_number = request.session.get('page_number', 0)
+	page_count = test.pages.count()
+	page_number = request.session['page_number']
+	page = test.pages.all()[page_number]
+
+	question_count = page.questions.count()
+
+	errors = None
+
+	# If page form has been submitted
+	if request.method == 'POST':
+		# Check whether data is valid
+		for i in range(0, question_count):
+			if 'q'+str(i) not in request.POST:
+				errors = 'No answer'
+
+		if errors is None:
+			# Check if there is another page
+			if page_number+1 < page_count:
+				page_number += 1
+				request.session['page_number'] += 1
+			else:
+				request.session.pop('test_id', None)
+				request.session.pop('page_number', None)
+				return redirect('tests:result')
+	else:
+		pass
 
 	page = test.pages.all()[page_number]
-	page_count = test.pages.count()
+	questions = page.questions.all()
 
 	# Assign context variables
 	context = {
 		'test': test,
-		'questions': page.questions.all(),
+		'questions': questions,
 		'page_number': page_number,
-		'page_count': page_count
+		'page_count': page_count,
+		'errors': errors
 	}
 
 	return render(request, 'tests/view.html', context)

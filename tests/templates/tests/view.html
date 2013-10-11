@@ -1,16 +1,26 @@
 <h1>{{ test.name }}</h1>
 
-<ul>
-{% for question in questions %}
-	<li>
-		{{ question.name }}
-		<ul>
-		{% for answer in question.answers.all %}
-			<li>{{ answer.name }}</li>
-		{% endfor %}
-		</ul>
-	</li>
-{% endfor %}
-</ul>
+{% if errors %}<p>There were some errors</p>{% endif %}
+
+<form action="" method="post">
+	{% csrf_token %}
+	<ul>
+	{% for question in questions %}
+		<li>
+			{{ question.name }}
+			<ul>
+			{% for answer in question.answers.all %}
+				<li>
+					<label for="q{{ forloop.parentloop.counter0 }}a{{ forloop.counter0 }}">{{ answer.name }}
+						<input type="radio" id="q{{ forloop.parentloop.counter0 }}a{{ forloop.counter0 }}" name="q{{ forloop.parentloop.counter0 }}" value="{{ answer.score }}" />
+					</label>
+				</li>
+			{% endfor %}
+			</ul>
+		</li>
+	{% endfor %}
+	</ul>
+	<input type="submit" name="submit" value="Submit" />
+</form>
 
 <p>You are currently on page {{ page_number|add:1 }} out of {{ page_count }}</p>
