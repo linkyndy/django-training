@@ -10,9 +10,10 @@ def index(request):
 
 	context = {
 		'tests': Test.objects.all(),
+		'test_status': request.session.get('test_status', None),
 		'active_test': request.session.get('test_id', None),
 	}
-
+	
 	return render(request, 'tests/index.html', context)
 
 
@@ -29,6 +30,7 @@ def view(request, test_id):
 
 	# If test_id is not started, start it
 	if 'test_id' not in request.session:
+		request.session['test_status'] = 'active'
 		request.session['test_id'] = test_id
 		request.session['page_number'] = 1
 		request.session['page_count'] = test.pages.count()
@@ -37,7 +39,7 @@ def view(request, test_id):
 	page_count = request.session['page_count']
 
 	# This means that a test is finished, so proceed to the results
-	if page_number-1 == page_count:
+	if request.session['test_status'] == 'finished':
 		return redirect('tests:result', test_id)
 
 	page = test.pages.all()[page_number-1]
@@ -47,13 +49,13 @@ def view(request, test_id):
 		form = PageForm(request.POST, page=page)
 
 		if form.is_valid():
-			request.session['page_number'] += 1
-
 			# Check if there is another page from the test; if not
 			# proceed to the results
 			if page_number < page_count:
+				request.session['page_number'] += 1
 				return redirect('tests:view', test_id)
 			else:
+				request.session['test_status'] = 'finished'
 				return redirect('tests:result', test_id)
 	else:
 		form = PageForm(page=page)
@@ -72,6 +74,7 @@ def view(request, test_id):
 def give_up(request):
 	"""Give up current test, stored in the session"""
 
+	del request.session['test_status']
 	del request.session['test_id']
 	del request.session['page_number']
 	del request.session['page_count']

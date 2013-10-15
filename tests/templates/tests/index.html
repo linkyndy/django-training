@@ -1,11 +1,19 @@
 <h1>Tests</h1>
 
-{% if active_test != None %}
+{% if test_status == 'active' %}
 	<p>
 		You have an active test. 
 		<a href="{% url 'tests:view' active_test %}">Continue</a>
 		or
 		<a href="{% url 'tests:give_up' %}">give up</a>
+		test.
+	</p>
+{% elif test_status == 'finished' %}
+	<p>
+		You have finished a test. 
+		<a href="{% url 'tests:result' active_test %}">View results</a>
+		or
+		<a href="{% url 'tests:give_up' %}">start another</a>
 		test.
 	</p>
 {% else %}
