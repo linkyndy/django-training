@@ -78,10 +78,11 @@ def view(request, test_id):
 def give_up(request):
 	"""Give up current test, stored in the session"""
 
-	del request.session['test_status']
-	del request.session['test_id']
-	del request.session['page_number']
-	del request.session['page_count']
+	request.session.pop('test_status', None)
+	request.session.pop('test_id', None)
+	request.session.pop('page_number', None)
+	request.session.pop('page_count', None)
+
 	return redirect('tests:index')
 
 
