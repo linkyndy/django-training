@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
-from models import Test
+from models import Test, Question, Answer, Result
 from forms import PageForm
 
 
@@ -34,6 +34,7 @@ def view(request, test_id):
 		request.session['test_id'] = test_id
 		request.session['page_number'] = 1
 		request.session['page_count'] = test.pages.count()
+		request.session['answers'] = {}
 
 	page_number = request.session['page_number']
 	page_count = request.session['page_count']
@@ -49,6 +50,9 @@ def view(request, test_id):
 		form = PageForm(request.POST, page=page)
 
 		if form.is_valid():
+			# Save answers in session
+			request.session['answers'].update(form.cleaned_data)
+
 			# Check if there is another page from the test; if not
 			# proceed to the results
 			if page_number < page_count:
@@ -84,4 +88,34 @@ def give_up(request):
 def result(request, test_id):
 	"""Displays the result of a test"""
 
-	return HttpResponse('Result for test #%s' % test_id)
+	# If a test is not finished, go to that test
+	if 'test_status' in request.session and \
+	   request.session['test_status'] != 'finished':
+		return redirect('tests:view', test_id)
+
+	# If test is finished, but given test_id doesn't match
+	# the current test, redirect to that test's result
+	if request.session['test_id'] != test_id:
+		return redirect('tests:result', request.session['test_id'])
+
+	# Fetch test questions
+	questions = Question.objects.filter(page__test__pk=test_id)
+
+	answers = []
+
+	# For each test question, get the answer id from the session,
+	# fetch the Answer object, and store it in a list
+	for question in questions:
+		answer_id = request.session['answers'].pop('question_{id}'.format(id=question.pk))
+		answers.append(Answer.objects.get(pk=answer_id))
+	
+	# Compute test score and result text
+	score = sum([answer.score for answer in answers])
+	text = Result.objects.filter(test__pk=test_id, limit__lte=score).order_by('-limit')[0]
+
+	context = {
+		'score': score,
+		'text': text,
+	}
+
+	return render(request, 'tests/result.html', context)
