@@ -20,8 +20,9 @@
 	<ul>
 	{% for test in tests %}
 		<li>
-			{{ test.name }}
-			<a href="{% url 'tests:view' test.id %}">Start</a>
+			<h3>{{ test.name }}</h3>
+			<p>{{ test.description }}</p>
+			<a href="{% url 'tests:view' test.id %}">Start test</a>
 		</li>
 	{% endfor %}
 	</ul>
