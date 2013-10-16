@@ -19,5 +19,5 @@ class PageForm(forms.Form):
 
 			# Add radio fields representing each question's answers
 			self.fields['question_{index}'.format(index=question.id)] = \
-				forms.ChoiceField(label=question.name, required=True, 
-								  choices=answers, widget=forms.RadioSelect)
+				forms.MultipleChoiceField(label=question.name, required=True, 
+								  choices=answers, widget=forms.CheckboxSelectMultiple)

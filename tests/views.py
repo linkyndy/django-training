@@ -104,11 +104,13 @@ def result(request, test_id):
 
 	answers = []
 
-	# For each test question, get the answer id from the session,
-	# fetch the Answer object, and store it in a list
+	# For each test question, get the answer ids from the session,
+	# fetch the Answer objects, and store them in a list
 	for question in questions:
-		answer_id = request.session['answers'].pop('question_{id}'.format(id=question.pk))
-		answers.append(Answer.objects.get(pk=answer_id))
+		answer_ids = request.session['answers'].pop('question_{id}'.format(id=question.pk))
+
+		for answer_id in answer_ids:
+			answers.append(Answer.objects.get(pk=answer_id))
 	
 	# Compute test score and result text
 	score = sum([answer.score for answer in answers])
