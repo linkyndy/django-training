@@ -1,3 +1,5 @@
+from itertools import chain, combinations
+
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
@@ -89,6 +91,50 @@ def give_up(request):
 def result(request, test_id):
 	"""Displays the result of a test"""
 
+	def score_by_answers(answers):
+		"""Returns the summed up score of given answers"""
+
+		return sum([answer.score for answer in answers])
+
+	def result_by_score(score):
+		"""Returns test result based on given score"""
+
+		try:
+			return Result.objects.filter(test__pk=test_id, \
+										 limit__lte=score) \
+				  				 .order_by('-limit')[0]
+		except IndexError:
+			return None
+
+	def similar_results(answers):
+		"""
+		Attempts to find better/worse result on test, by finding the 
+		least amount of unchecked answers that will change the overall result.
+		"""
+
+		# Get unchecked answers
+		unchecked = Answer.objects.filter(question__page__test__pk=test_id) \
+								  .exclude(pk__in=[a.pk for a in answers]) \
+								  .order_by('question')
+
+		# Generate all combinations of unchecked answers, starting with fewer
+		# elements/combination (in order to find the least amount of answers)
+		combs = chain.from_iterable(combinations(unchecked, r) for r in range(len(unchecked)+1))
+
+		for comb in combs:
+			# Get result with unchecked answers from combination added
+			similar_result = result_by_score(score_by_answers(comb) + score)
+
+			# If result changes, return the new result
+			if similar_result != None and \
+			   similar_result.limit > result.limit:
+				return {
+					'result': similar_result,
+					'answers': comb,
+				}
+
+		return None
+
 	# If a test is not finished, go to that test
 	if 'test_status' in request.session and \
 	   request.session['test_status'] != 'finished':
@@ -102,7 +148,8 @@ def result(request, test_id):
 	# Fetch test questions
 	questions = Question.objects.filter(page__test__pk=test_id)
 
-	answers = []
+	# Checked answers list
+	checked = []
 
 	# For each test question, get the answer ids from the session,
 	# fetch the Answer objects, and store them in a list
@@ -110,15 +157,16 @@ def result(request, test_id):
 		answer_ids = request.session['answers'].pop('question_{id}'.format(id=question.pk))
 
 		for answer_id in answer_ids:
-			answers.append(Answer.objects.get(pk=answer_id))
-	
+			checked.append(Answer.objects.get(pk=answer_id))
+
 	# Compute test score and result text
-	score = sum([answer.score for answer in answers])
-	text = Result.objects.filter(test__pk=test_id, limit__lte=score).order_by('-limit')[0]
+	score = score_by_answers(checked)
+	result = result_by_score(score)
 
 	context = {
 		'score': score,
-		'text': text,
+		'result': result,
+		'similar_results': similar_results(checked),
 	}
 
 	return render(request, 'tests/result.html', context)

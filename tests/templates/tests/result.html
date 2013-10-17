@@ -1,1 +1,16 @@
-<p>Test result: {{ text }} (it means you got {{ score }} points)</p>
+<h2>Test result</h2>
+
+<p>{{ result.text }} (it means you got {{ score }} points)</p>
+
+{% if similar_results != None %}
+	<h3>Now...</h3>
+	<p>If you've also checked these answers for the following questions:</p>
+	<ul>
+	{% for answer in similar_results.answers %}
+		<li>{{ answer.question }} -- {{ answer }}</li>
+	{% endfor %}
+	</ul>
+	<p>You would've gotten this result: {{ similar_results.result.text }}!</p>
+{% endif %}
+
+<a href="{% url 'tests:give_up' %}">Start another test</a>
