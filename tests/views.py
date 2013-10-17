@@ -106,6 +106,21 @@ def result(request, test_id):
 		except IndexError:
 			return None
 
+	def same_page_answers(answers):
+		"""Returns boolean whether any two different answers' questions belong to the same page"""
+		
+		pages = {}
+		for answer in answers:
+			if answer.question.page in pages:
+				if answer.question in pages[answer.question.page]:
+					return True
+				else:
+					pages[answer.question.page].append(answer.question)
+			pages[answer.question.page] = []
+
+		return False
+
+
 	def similar_results(answers):
 		"""
 		Attempts to find better/worse result on test, by finding the 
@@ -122,6 +137,10 @@ def result(request, test_id):
 		combs = chain.from_iterable(combinations(unchecked, r) for r in range(len(unchecked)+1))
 
 		for comb in combs:
+			# Filter out combinations that contain answers from the same page
+			if same_page_answers(comb):
+				continue
+
 			# Get result with unchecked answers from combination added
 			similar_result = result_by_score(score_by_answers(comb) + score)
 
