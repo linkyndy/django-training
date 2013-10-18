@@ -2,15 +2,26 @@
 
 <p>{{ result.text }} (it means you got {{ score }} points)</p>
 
-{% if similar_results != None %}
-	<h3>Now...</h3>
+{% if similar_results.better_result != None %}
+	<h3>You can be better!</h3>
 	<p>If you've also checked these answers for the following questions:</p>
 	<ul>
-	{% for answer in similar_results.answers %}
+	{% for answer in similar_results.better_result.answers %}
 		<li>{{ answer.question }} -- {{ answer }}</li>
 	{% endfor %}
 	</ul>
-	<p>You would've gotten this result: {{ similar_results.result.text }}!</p>
+	<p>You would've gotten this result: {{ similar_results.better_result.result.text }}!</p>
+{% endif %}
+
+{% if similar_results.worse_result != None %}
+	<h3>You definitely could have been worse!</h3>
+	<p>If you've also checked these answers for the following questions:</p>
+	<ul>
+	{% for answer in similar_results.worse_result.answers %}
+		<li>{{ answer.question }} -- {{ answer }}</li>
+	{% endfor %}
+	</ul>
+	<p>You would've gotten this result: {{ similar_results.worse_result.result.text }}!</p>
 {% endif %}
 
 <a href="{% url 'tests:give_up' %}">Start another test</a>

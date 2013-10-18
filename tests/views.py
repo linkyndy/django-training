@@ -108,7 +108,7 @@ def result(request, test_id):
 
 	def same_page_answers(answers):
 		"""Returns boolean whether any two different answers' questions belong to the same page"""
-		
+
 		pages = {}
 		for answer in answers:
 			if answer.question.page in pages:
@@ -119,7 +119,6 @@ def result(request, test_id):
 			pages[answer.question.page] = []
 
 		return False
-
 
 	def similar_results(answers):
 		"""
@@ -136,6 +135,8 @@ def result(request, test_id):
 		# elements/combination (in order to find the least amount of answers)
 		combs = chain.from_iterable(combinations(unchecked, r) for r in range(len(unchecked)+1))
 
+		better_result = worse_result = None
+
 		for comb in combs:
 			# Filter out combinations that contain answers from the same page
 			if same_page_answers(comb):
@@ -144,15 +145,26 @@ def result(request, test_id):
 			# Get result with unchecked answers from combination added
 			similar_result = result_by_score(score_by_answers(comb) + score)
 
-			# If result changes, return the new result
-			if similar_result != None and \
-			   similar_result.limit > result.limit:
-				return {
-					'result': similar_result,
-					'answers': comb,
-				}
+			# If result changes, save the new result
+			if similar_result != None:
+				if better_result is None and \
+				   similar_result.limit > result.limit:
+					better_result = {
+						'result': similar_result,
+						'answers': comb,
+					}
+				elif worse_result is None and \
+				     similar_result.limit < result.limit:
+					worse_result = {
+						'result': similar_result,
+						'answers': comb,
+					}
 
-		return None
+			# Break loop if both better and worse results have been found
+			if better_result and worse_result:
+				break;
+
+		return {'better_result': better_result, 'worse_result': worse_result}
 
 	# If a test is not finished, go to that test
 	if 'test_status' in request.session and \
@@ -187,5 +199,5 @@ def result(request, test_id):
 		'result': result,
 		'similar_results': similar_results(checked),
 	}
-
+	
 	return render(request, 'tests/result.html', context)
