@@ -10,7 +10,11 @@ class Test(models.Model):
 
 
 class Page(models.Model):
+	name = models.CharField(max_length=50)
 	test = models.ForeignKey(Test, related_name='pages')
+
+	def __unicode__(self):
+		return self.name
 
 
 class Question(models.Model):
