@@ -1,4 +1,5 @@
 from itertools import chain, combinations
+from collections import defaultdict
 
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -120,6 +121,39 @@ def result(request, test_id):
 
 		return False
 
+	def filter_out_answers(answers):
+		"""
+		Filters out all answers from given list which belong to different 
+		questions which belong to the same page
+		"""
+
+		def custom_default_dict():
+			"""
+			Custom defaultdict factory for building nested defaultdicts with lists 
+			as default values.
+			e.g.: d['key']['key2'].append('elem')
+			"""
+
+			return defaultdict(list)
+
+		# Holds answer data
+		# Looks like: data[page][question] = [answers]
+		data = defaultdict(custom_default_dict)
+
+		for answer in answers:
+			data[answer.question.page][answer.question].append(answer)
+
+		# Iterate over data and pick unwanted answers (all answers whose questions
+		# are more than 1 on their page)
+		unwanted_answers = []
+		for page, questions in data.iteritems():
+			if len(questions) > 1:
+				for questions, answers in questions.iteritems():
+					unwanted_answers.extend(answers)
+
+
+		return [answer for answer in answers if answer not in unwanted_answers]
+
 	def similar_results(answers):
 		"""
 		Attempts to find better/worse result on test, by finding the 
@@ -138,12 +172,15 @@ def result(request, test_id):
 		better_result = worse_result = None
 
 		for comb in combs:
-			# Filter out combinations that contain answers from the same page
-			if same_page_answers(comb):
+			# Filter out combinations that contain answers which belong to
+			# different questions that belong to the same page
+			answers = filter_out_answers(comb)
+			
+			if not answers:
 				continue
 
 			# Get result with unchecked answers from combination added
-			similar_result = result_by_score(score_by_answers(comb) + score)
+			similar_result = result_by_score(score_by_answers(answers) + score)
 
 			# If result changes, save the new result
 			if similar_result != None:
@@ -151,13 +188,13 @@ def result(request, test_id):
 				   similar_result.limit > result.limit:
 					better_result = {
 						'result': similar_result,
-						'answers': comb,
+						'answers': answers,
 					}
 				elif worse_result is None and \
 				     similar_result.limit < result.limit:
 					worse_result = {
 						'result': similar_result,
-						'answers': comb,
+						'answers': answers,
 					}
 
 			# Break loop if both better and worse results have been found
