@@ -85,6 +85,7 @@ def give_up(request):
 	request.session.pop('test_id', None)
 	request.session.pop('page_number', None)
 	request.session.pop('page_count', None)
+	request.session.pop('answers', None)
 
 	return redirect('tests:index')
 
@@ -105,7 +106,8 @@ def result(request, test_id):
 										 limit__lte=score) \
 				  				 .order_by('-limit')[0]
 		except IndexError:
-			return None
+			return Result(text='Your result is too low!', \
+						  limit=-999)
 
 	def filter_out_answers(answers):
 		"""
