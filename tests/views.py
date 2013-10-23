@@ -107,20 +107,6 @@ def result(request, test_id):
 		except IndexError:
 			return None
 
-	def same_page_answers(answers):
-		"""Returns boolean whether any two different answers' questions belong to the same page"""
-
-		pages = {}
-		for answer in answers:
-			if answer.question.page in pages:
-				if answer.question in pages[answer.question.page]:
-					return True
-				else:
-					pages[answer.question.page].append(answer.question)
-			pages[answer.question.page] = []
-
-		return False
-
 	def filter_out_answers(answers):
 		"""
 		Filters out all answers from given list which belong to different 
