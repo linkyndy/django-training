@@ -2,12 +2,13 @@ from django.test import TestCase, Client
 from django.core.urlresolvers import reverse
 
 from models import Test, Page, Question, Answer, Result
+from forms import PageForm
 
 
 class NoTestsCreatedTests(TestCase):
 	"""Tests for when no tests are created within the app"""
 
-	def testIndex(self):
+	def testIndexContext(self):
 		response = self.client.get(reverse('tests:index'))
 
 		self.assertEqual(response.status_code, 200)
@@ -128,20 +129,19 @@ class TemplateTests(TestCase):
 
 	def testResultTemplateUsed(self):
 		self.client.get(reverse('tests:view', args=(1,)))
-		self.client.post(reverse('tests:view', args=(1,)), {
+		session = self.client.session
+		session['test_status'] = 'finished'
+		session['answers'] = {
 			'question_1': ['4'],
 			'question_2': ['5', '7'],
-			'question_3': ['9', '10']
-		})
-		self.client.post(reverse('tests:view', args=(1,)), {
+			'question_3': ['9', '10'],
 			'question_4': ['11'],
 			'question_5': ['13', '14'],
-		})
-		self.client.post(reverse('tests:view', args=(1,)), {
 			'question_6': ['15'],
 			'question_7': ['22', '23'],
 			'question_8': ['25'],
-		})
+		}
+		session.save()
 		response = self.client.get(reverse('tests:result', args=(1,)))
 		self.assertTemplateUsed(response, 'tests/result.html')
 
@@ -155,10 +155,69 @@ class IndexViewTests(TestCase):
 		response = self.client.get(reverse('tests:index'))
 
 		self.assertEqual(response.status_code, 200)
+		self.assertIn('tests', response.context)
 		self.assertQuerysetEqual(response.context['tests'], ['<Test: Basic test>'])
+		self.assertIn('test_status', response.context)
 		self.assertEqual(response.context['test_status'], None)
+		self.assertIn('active_test', response.context)
 		self.assertEqual(response.context['active_test'], None)
-		self.assertTemplateUsed(response, 'tests/index.html')
+		
+
+class ViewViewTests(TestCase):
+	"""Tests involving the view view of the tests app"""
+
+	fixtures = ['sample_test.json']
+
+	def testContext(self):
+		response = self.client.get(reverse('tests:view', args=(1,)))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertIn('test', response.context)
+		self.assertEqual(response.context['test'], Test.objects.get(pk=1))
+		self.assertIn('page_number', response.context)
+		self.assertEqual(response.context['page_number'], 1)
+		self.assertIn('page_count', response.context)
+		self.assertEqual(response.context['page_count'], 3)
+		self.assertIn('form', response.context)
+		self.assertIsInstance(response.context['form'], PageForm)
+
+
+class ResultViewTests(TestCase):
+	"""Tests involving the result view of the tests app"""
+
+	fixtures = ['sample_test.json']
+
+	def testContext(self):
+		self.client.get(reverse('tests:view', args=(1,)))
+		session = self.client.session
+		session['test_status'] = 'finished'
+		session['answers'] = {
+			'question_1': ['4'],
+			'question_2': ['5', '7'],
+			'question_3': ['9', '10'],
+			'question_4': ['11'],
+			'question_5': ['13', '14'],
+			'question_6': ['15'],
+			'question_7': ['22', '23'],
+			'question_8': ['25'],
+		}
+		session.save()
+		response = self.client.get(reverse('tests:result', args=(1,)))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertIn('score', response.context)
+		self.assertEqual(response.context['score'], 5)
+		self.assertIn('result', response.context)
+		self.assertEqual(response.context['result'], Result(text='Your result is too low!', \
+						  								    limit=-999))
+		self.assertIn('similar_results', response.context)
+		self.assertEqual(response.context['similar_results'], {
+			'better_result': {
+				'result': Result.objects.get(limit=10),
+				'answers': [Answer.objects.get(pk=20)]
+			},
+			'worse_result': None
+		})
 
 
 class FlowTests(TestCase):
@@ -166,14 +225,44 @@ class FlowTests(TestCase):
 
 	fixtures = ['sample_test.json']
 
-	def testActiveTest(self):
-		# Go to test page, e.g. start the test
+	def setUp(self):
+		self.client = Client()
+
+	def testTestWithBothSimilarResults(self):
 		self.client.get(reverse('tests:view', args=(1,)))
 
-		# Go back to index page and test context
-		response = self.client.get(reverse('tests:index'))
+		session = self.client.session
+		session['test_status'] = 'finished'
+		session['answers'] = {
+			'question_1': ['1', '4'],
+			'question_2': ['5'],
+			'question_3': ['9'],
+			'question_4': ['12'],
+			'question_5': ['13'],
+			'question_6': ['15', '16'],
+			'question_7': ['23'],
+			'question_8': ['24'],
+		}
+		session.save()
 
-		self.assertEqual(response.status_code, 200)
-		self.assertEqual(response.context['test_status'], 'active')
-		self.assertEqual(response.context['active_test'], '1')
-		self.assertTemplateUsed(response, 'tests/index.html')
+		response = self.client.get(reverse('tests:result', args=(1,)))
+
+		self.assertEqual(response.context['score'], 26)
+		self.assertEqual(response.context['result'], Result.objects.get(limit=20))
+		self.assertEqual(response.context['similar_results'], {
+			'better_result': {
+				'result': Result.objects.get(limit=30),
+				'answers': [Answer.objects.get(pk=14)]
+			},
+			'worse_result': {
+				'result': Result(text='Your result is too low!', \
+						  		 limit=-999),
+				'answers': [Answer.objects.get(pk=17)]
+			}
+		})
+
+	def testTestWithBetterSimilarResults(self):
+		pass
+
+	def testTestWithWorseSimilarResults(self):
+		pass
