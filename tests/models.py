@@ -14,7 +14,7 @@ class Page(models.Model):
 	test = models.ForeignKey(Test, related_name='pages')
 
 	def __unicode__(self):
-		return self.name
+		return '{name} (from Test: {test})'.format(name=self.name, test=self.test.name)
 
 
 class Question(models.Model):
