@@ -5,22 +5,22 @@ from models import Test, Page, Question, Answer, Result
 
 
 class AnswerInline(admin.TabularInline):
-	model = Answer
+    model = Answer
 
 
 class QuestionAdmin(admin.ModelAdmin):
-	inlines = [AnswerInline,]
+    inlines = [AnswerInline]
 admin.site.register(Question, QuestionAdmin)
 
 
 class ResultInline(admin.TabularInline):
-	model = Result
+    model = Result
 
 
 class PageInline(admin.TabularInline):
-	model = Page
+    model = Page
 
 
 class TestAdmin(admin.ModelAdmin):
-	inlines = [PageInline, ResultInline]
+    inlines = [PageInline, ResultInline]
 admin.site.register(Test, TestAdmin)
