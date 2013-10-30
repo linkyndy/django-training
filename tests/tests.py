@@ -290,7 +290,8 @@ class FlowTests(TestCase):
         self.assertEqual(response.context['similar_results'], {
             'better_result': {
                 'result': Result.objects.get(limit=10),
-                'answers': [Answer.objects.get(pk=1), Answer.objects.get(pk=14)]
+                'answers': [Answer.objects.get(pk=1),
+                            Answer.objects.get(pk=14)]
             },
             'worse_result': None
         })
@@ -346,10 +347,11 @@ class FlowTests(TestCase):
 
         answers = ['1', '4', '5', '9', '12', '13', '15', '16', '23', '24']
 
-        for answer in response.context['similar_results']['better_result']['answers']:
+        similar_results = response.context['similar_results']
+        for answer in similar_results['better_result']['answers']:
             self.assertNotIn(answer.pk, answers)
 
-        for answer in response.context['similar_results']['worse_result']['answers']:
+        for answer in similar_results['worse_result']['answers']:
             self.assertNotIn(answer.pk, answers)
 
     def testSimilarResultsDifferentPages(self):
@@ -372,11 +374,12 @@ class FlowTests(TestCase):
         response = self.client.get(reverse('tests:result', args=(1,)))
 
         pages = []
-        for answer in response.context['similar_results']['better_result']['answers']:
+        similar_results = response.context['similar_results']
+        for answer in similar_results['better_result']['answers']:
             self.assertNotIn(answer.question.page, pages)
             pages.append(answer.question.page)
 
         pages = []
-        for answer in response.context['similar_results']['worse_result']['answers']:
+        for answer in similar_results['worse_result']['answers']:
             self.assertNotIn(answer.question.page, pages)
             pages.append(answer.question.page)
